@@ -1,8 +1,18 @@
-/*
-Moodle Web Log Analytics Tool from Moodle Standard Logs
-Copyright (c) 2020 Source code, Daniel Amo
-Released under the MIT License
+/** 
+* FILE DESCRIPTION: Client starting 
+* @package jsmla 
+* @copyright 2020 Daniel Amo * daniel.amo@salle.url.edu 
+* @copyright 2020 La Salle Campus Barcelona, Universitat Ramon Llull https://www.salleurl.edu 
+* @author Daniel Amo 
+* @author Pablo Gómez
+* @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later 
 */
+
+var color4 = "#cc2000";
+var color3 = "#e94020";
+var color2 = "#f39f91";
+var color1 = "#f8c7bf";
+var color0 = "#f5e3df";
 
 String.prototype.dePersonalize = function () {
   var hash = 0;
@@ -35,10 +45,25 @@ Date.prototype.diffTimestamp = function (timestamp) {
 
 function gradient(maxVal, val) {
   let perct = (val * 100) / maxVal;
-  if (perct <= 25) return "#C6DEFF";
-  else if (perct <= 50) return "#82CAFF";
-  else if (perct <= 75) return "#56A5EC";
-  else if (perct <= 100) return "#1589FF";
+  if (perct <= 25) return color0;
+  else if (perct <= 50) return color1;
+  else if (perct <= 75) return color2;
+  else if (perct <= 100) return color3;
+}
+
+function gradientHM(maxVal,secMaxVal,val) {
+  if (val < maxVal) {
+
+    let perct = (val * 100) / secMaxVal;
+    if (perct <= 25) return color0;
+    else if (perct <= 50) return color1;
+    else if (perct <= 75) return color2;
+    else if (perct <= 100) return color3;
+
+  } else {
+    return color4;
+  }
+
 }
 
 function getGradientColor(start_color, end_color, percent) {
@@ -92,28 +117,20 @@ function YMDToDate(ymd) {
 
 /** @type {Dashboard} */
 var dashb = new Dashboard({
-  global: {
-    css:
-      "\
-        .widget {resize:both;overflow:auto;margin:10px;padding:10px;background:white;border: 1px #d7dfe3 solid;border-radius:4px;-webkit-box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.05);box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.05);}\
-        .widget .title {color:green;}\
-        .widget .content {}\
-        .widget .rows {font-size:30px;color:green;text-align:center}\
-        .widget.section {background:#636363 !important;color:white !important}\
-        .widget.section h2 {margin:2px}\
-        .widget.section p {margin:2px}\
-        .widget table {background:white}\
-        .widget table > thead {background:gray;color:white}\
-      ",
-  },
-  widget: {
+    widget: {
     html:
       '\
-        <div onresize="console.log(\'t\');" class="widget" id="%ID%" style="width:%WIDTH%px;height:%HEIGHT%px">\n\
+        <div onresize="console.log(\'t\');" class="widget" id="%ID%" style="width:%WIDTH%px;height:%HEIGHT%px;">\n\
+          <div class="widgetHeader">\
             <h2 id="title_%ID%" onclick="%CALLBACK%(\'%ID%\');" style="white-space:nowrap;overflow:hidden">%TITLE%</h2>\n\
+          </div>\n\
             <div id="content_%ID%" class="content" style="width:100%;overflow:auto">\n\
               <div id="rows_%ID%" class="rows"></div>\n\
             </div>\n\
+        </div>\
+        <div class="tooltip_handler">\
+          <p>?</p>\
+          <p class="tooltip_text" id="tooltip_%ID%"> %TOOLTIP% </p>\
         </div>\
       ',
   },
@@ -137,13 +154,13 @@ var codeditor;
  * @param {event} e - The event value.
  */
 function changeInputFile(e) {
-  displayFileContents(createLoadingContent());
+  displayFileContents();
   dashb.msldb.readLogFromFile(e, rlffOnLoad, rlffOnProgress);
 }
 
-function createLoadingContent() {
-  return '<p id="loading-content">Loading content...</p><div class="loader"></div>';
-}
+// function createLoadingContent() {
+//   return '<p id="loading-content">Loading content...</p>';
+// }
 
 function showFileReaderError() {
   return '<div class="timeout-error">There was an error reading the file. Please refresh the page and try again.</div>';
@@ -256,14 +273,26 @@ function rlffOnProgress(e) {
       let progress = Math.floor(Math.round(e.loaded / 1024 / 1024));
       let lcP = document.getElementById("loading-content");
       lcP.innerHTML = "Loading content (" + progress + " of " + total + ")...";
+      let elem = document.getElementById("loader-my-progress");
+      moveProgressBar(elem, progress, total);
     });
   };
-
   let loading = timeoutPromise(15000, dataLoadingPromise());
 
   loading.catch(() => {
     displayFileContents(showTimeoutError());
   });
+}
+
+function moveProgressBar(elem, progress, total) {
+  if (elem !== undefined && elem !== null) {
+    var width = parseFloat(elem.style.width) / 100.0;
+    if (width <= 100) {
+      elem.style.width = (progress / total) * 100 + "%";
+    } else {
+      elem.style.width = 0;
+    }
+  }
 }
 
 function createWidgets(widgets) {
@@ -295,7 +324,7 @@ function renderDefaultDashboard() {
     /* Poder cargar la información de dos campos distintos y filtros distintos */
     {
       html:
-        '<div class="widget" style="flex-basis: 100%;">\
+        '<div class="widget" id="title" style="flex-basis: 100%;">\
       <h1>Dashboard</h1>\
       </div>',
       mode: WIDGET_TEXT,
@@ -303,38 +332,48 @@ function renderDefaultDashboard() {
     {
       html:
         '<div class="widget section" style="flex-basis: 100%;">\
-      <h2>1 Resum d\'interaccions en el curs</h2>\
-      <p>Informació relativa al número d\'interaccions</p>\
+      <h2>1. Summary of all course interactions:</h2>\
+      <p>Information on the number of interactions</p>\
       </div>',
+
       mode: WIDGET_TEXT,
     },
     {
+      width: 260,
+      margin_tooltip: 270,
       height: 200,
       size: 0.5,
       css: ".widget .rowsOnly {font-weight:bold}",
       title: "Total",
       srcJS: "https://canvasjs.com/assets/script/canvasjs.min.js",
       srcCSS: "",
+      tooltip:"The total number of interactions with every element of a subject has been interacted, including viewing the subject.",
       mode: WIDGET_CODE_SNIPPET,
       snippet:
         '{let number = "%COUNT%"-0;document.getElementById("rows_%ID%").classList.add("rowsOnly");document.getElementById("rows_%ID%").innerHTML = number.toLocaleString();}',
       kpi: "",
+      counter: true,
     },
     {
       height: 200,
+      margin_tooltip: 210,
       size: 0.5,
-      title: "Tasques",
+      title: "Tasks",
+      tooltip:"The total number of interactions with all deliveries of a subject.",
       mode: WIDGET_CODE_SNIPPET,
       snippet:
         '{let number = "%COUNT%"-0;document.getElementById("rows_%ID%").innerHTML = number.toLocaleString();}',
       field: "event",
       filter: { description: ["CONTAINS (assignment)"] },
+      counter: true,
     },
     {
       height: 200,
+      margin_tooltip: 210,
       size: 0.5,
-      title: "Fitxer",
+      title: "Files",
       mode: WIDGET_CODE_SNIPPET,
+      tooltip:"The total number of interactions with all files of a subject.",
       snippet:
         '{let number = "%COUNT%"-0;document.getElementById("rows_%ID%").innerHTML = number.toLocaleString();}',
       field: "event",
@@ -342,46 +381,59 @@ function renderDefaultDashboard() {
         component: ["IN (Fitxer)"],
         description: ["CONTAINS ('resource' activity)"],
       },
+      counter: true,
     },
     {
       height: 200,
+      margin_tooltip: 210,
       size: 0.5,
-      title: "Pàgines",
+      title: "Pages",
+      tooltip:"The total number of interactions with the pages of a subject.",
       mode: WIDGET_CODE_SNIPPET,
       snippet:
         '{let number = "%COUNT%"-0;document.getElementById("rows_%ID%").innerHTML = number.toLocaleString();}',
       field: "component",
       filter: { component: ["BEGIN (Pà)"] },
+      counter: true,
     },
     {
       height: 200,
+      margin_tooltip: 210,
       size: 0.5,
       title: "URL",
+      tooltip:"The total number of interactions with the URL resource of a subject.",
       mode: WIDGET_CODE_SNIPPET,
       snippet:
         '{let number = "%COUNT%"-0;document.getElementById("rows_%ID%").innerHTML = number.toLocaleString();}',
       field: "component",
       filter: { component: ["IN (URL)"] },
+      counter: true,
     },
     {
       height: 200,
+      margin_tooltip: 210,
       size: 0.5,
       title: "LTI",
       mode: WIDGET_CODE_SNIPPET,
+      tooltip:"The total number of interactions with the Learning Tools Interoperability resources of a subject.",
       snippet:
         '{let number = "%COUNT%"-0;document.getElementById("rows_%ID%").innerHTML = number.toLocaleString();}',
       field: "component",
       filter: { component: ["CONTAINS (lti)"] },
+      counter: true,
     },
     {
       height: 200,
+      margin_tooltip: 210,
       size: 0.5,
       title: "Wiki",
+      tooltip:"The total number of interactions with the wikis of a subject.",
       mode: WIDGET_CODE_SNIPPET,
       snippet:
         '{let number = "%COUNT%"-0;document.getElementById("rows_%ID%").innerHTML = number.toLocaleString();}',
       field: "component",
       filter: { component: ["CONTAINS (Wiki)"] },
+      counter: true,
     },
     {
       html: '<div style="flex-basis: 100%;"></div>',
@@ -404,9 +456,11 @@ function renderDefaultDashboard() {
       filter: { component: ["IN (URL)"] },
     },
     {
-      width: "1000",
+      width: "1012",
+      margin_tooltip: 900,
       height: "300",
-      title: "Timeline d'interaccions",
+      title: "Interactions Across Course",
+      tooltip: 'Plot which shows the number of interactions performed across the time defined at the filter section. Each line represents a different kind of resource.',
       mode: WIDGET_CODE_SNIPPET,
       snippet:
         '\
@@ -456,19 +510,19 @@ function renderDefaultDashboard() {
           },\
           {\
             type: "line",\
-            name: "Tasca",\
+            name: "Task",\
             showInLegend: true,\
             dataPoints: dataPoints2\
           },\
           {\
             type: "line",\
-            name: "Fitxer",\
+            name: "File",\
             showInLegend: true,\
             dataPoints: dataPoints3\
           },\
           {\
             type: "line",\
-            name: "Pàgina",\
+            name: "Page",\
             showInLegend: true,\
             dataPoints: dataPoints4\
           },\
@@ -495,9 +549,11 @@ function renderDefaultDashboard() {
       ],
     },
     {
-      width: "1000",
-      height: "500",
-      title: "Interaccions dies i franja horària",
+      width: "1012",
+      margin_tooltip: 500,
+      height: "700",
+      title: "Interactions Across Week",
+      tooltip:"A table which represents the number of interactions in a week performed by hour.",
       mode: WIDGET_CODE_SNIPPET,
       snippet:
         '{\
@@ -521,24 +577,24 @@ function renderDefaultDashboard() {
             let str = "<table>\
                 <thead>\
                     <tr>\
-                        <th class=\\"tdLeft\\" style=\\"width:100px\\">Franja</th>\
-                        <th class=\\"tdCenter\\" style=\\"width:100px\\">Dilluns</th>\
-                        <th class=\\"tdCenter\\" style=\\"width:100px\\">Dimarts</th>\
-                        <th class=\\"tdCenter\\" style=\\"width:100px\\">Dimecres</th>\
-                        <th class=\\"tdCenter\\" style=\\"width:100px\\">Dijous</th>\
-                        <th class=\\"tdCenter\\" style=\\"width:100px\\">Divendres</th>\
-                        <th class=\\"tdCenter\\" style=\\"width:100px\\">Dissabte</th>\
-                        <th class=\\"tdCenter\\" style=\\"width:100px\\">Diumenge</th>\
+                        <th class=\\"tdLeft weekInteractions\\">Time Slot</th>\
+                        <th class=\\"tdCenter weekInteractions\\">Monday</th>\
+                        <th class=\\"tdCenter weekInteractions\\">Tuesday</th>\
+                        <th class=\\"tdCenter weekInteractions\\">Wednesday</th>\
+                        <th class=\\"tdCenter weekInteractions\\">Thursday</th>\
+                        <th class=\\"tdCenter weekInteractions\\">Friday</th>\
+                        <th class=\\"tdCenter weekInteractions\\">Saturday</th>\
+                        <th class=\\"tdCenter weekInteractions\\">Sunday</th>\
                     </tr>\
                 </thead>\
                 <tbody style=\'max-height:"+height+"px\'>";\
                 for (let i = 0; i <24; i++) {\
                   str += "<tr>";\
-                  str += "<td class=\\"tdLeft\\" style=\\"width:100px\\">" + i + ":00-"+i+":59</td>";\
+                  str += "<td class=\\"tdLeft weekInteractions\\">" + i + ":00-"+i+":59</td>";\
                   for (let j = 1; j <= 7; j++) {\
                     diesHores[j] = diesHores[j] || {};\
                     let val = ((undefined !== diesHores[j][i])?diesHores[j][i]:0);\
-                    str += "<td class=\\"tdCenter\\" style=\\"background:"+gradient(maxVal,val)+";width:100px\\">" + val.toLocaleString() + "</td>";\
+                    str += "<td class=\\"tdCenter weekInteractions\\" style=\\"background:"+gradient(maxVal,val)+"\\">" + val.toLocaleString() + "</td>";\
                   }\
                   str += "</tr>";\
                 }\
@@ -551,15 +607,16 @@ function renderDefaultDashboard() {
     {
       html:
         '<div class="widget section" style="flex-basis: 100%;">\
-      <h2>2 Estudiants</h2>\
-      <p>Informació relativa a les interaccions dels estudiants</p>\
+      <h2>2. Students:</h2>\
+      <p>Information on student interactions</p>\
       </div>',
       mode: WIDGET_TEXT,
     },
     {
-      width: "1000",
+      width: "1012",
       height: "300",
-      title: "Últim accés i estudiant",
+      title: "Last Access & Students",
+      tooltip:"A plot which purpose is to show the last connection from the course's members. If you hover over the plot, it shows who was connected the last day.",
       srcJS: "https://canvasjs.com/assets/script/canvasjs.min.js",
       srcCSS: "",
       mode: WIDGET_CODE_SNIPPET,
@@ -610,7 +667,7 @@ function renderDefaultDashboard() {
         data: [\
           {\
             type: "line",\
-            name: "Estudiants",\
+            name: "Students",\
             showInLegend: true,\
             dataPoints: dataPoints\
           },\
@@ -621,16 +678,17 @@ function renderDefaultDashboard() {
       calcFn: { fn: "lastconnection", field: "timestamp" },
     },
     {
-      width: "1000",
+      width: "1012",
       height: "500",
-      title: "Mapa calor Accesos Recursos - Estudiant",
+      title: "Resource - Students Access Chart",
+      tooltip: "A table which represents the amount of times the members of the course have interacted with each resource (including viewing the course).",
       mode: WIDGET_CODE_SNIPPET,
       snippet:
         '{\
         let widget = document.getElementById("content_%ID%");\
         let labels = %LABELS%;\
         let values = %VALUES%;\
-        let height = %HEIGHT% - 100;\
+        let height = %HEIGHT% - 130;\
         let axisX = new Array();\
         for (let i = 0; i < labels.length; i++) {\
           for (let prop in values[i]){\
@@ -640,27 +698,31 @@ function renderDefaultDashboard() {
         let str = "<table style=\\"min-width:150px\\">\
             <thead>\
                 <tr>\
-                    <th style=\\"min-width:150px;max-width:150px;white-space: nowrap\\" class=\\"tdLeft\\">Recurs</th>";\
+                    <th class=\\"tdLeft resourceStudentsAccessChart\\">Resource</th>";\
                     for (let prop in axisX){\
-                      str += "<th title=\\"" + prop + "\\" style=\\"min-width:40px;max-width:40px;overflow: hidden;text-overflow: ellipsis;width:150px;white-space: nowrap\\" class=\\"tdCenter\\">" + prop + "</th>";\
+                      str += "<th title=\\"" + prop + "\\" class=\\"tdCenter resourceStudentsAccessChart student\\">" + prop + "</th>";\
                     };\
         str += "</tr>\
             </thead>\
             <tbody style=\'max-height:"+height+"px\'>";\
         let maxVal = 0;\
+        let secMaxVal = 0;\
         for (let i = 0; i < labels.length; i++) {\
           for (let prop in axisX){\
             let val = ((undefined!==values[i][prop])?values[i][prop]:0);\
-            if (val > maxVal)\
+            if (val > maxVal) {\
               maxVal = val;\
+            } else if (val > secMaxVal){\
+              secMaxVal = val;\
+            }\
           };\
         };\
         for (let i = 0; i < labels.length; i++) {\
             str += "<tr>";\
-            str += "<td title=\\"" + labels[i].replace(\'"\',\'"\') + "\\" style=\\"min-width:150px;max-width:150px;overflow: hidden;text-overflow: ellipsis;width:150px;white-space: nowrap\\" class=\\"tdLeft\\">" + labels[i] + "</td>";\
+            str += "<td title=\\"" + labels[i].replace(\'"\',\'"\') + "\\" class=\\"tdLeft resourceStudentsAccessChart resource\\">" + labels[i] + "</td>";\
             for (let prop in axisX){\
               let val = ((undefined!==values[i][prop])?values[i][prop]:0);\
-              str += "<td style=\\"min-width:40px;width:40px;white-space: nowrap;background:"+gradient(maxVal,val)+"\\" class=\\"tdRight\\">" + val.toLocaleString() + "</td>";\
+              str += "<td style=\\"background:"+gradientHM(maxVal,secMaxVal,val)+"\\" class=\\"tdCenter resourceStudentsAccessChart student\\">" + val.toLocaleString() + "</td>";\
             };\
             str += "</tr>"; };\
         str += "</tbody>\
@@ -676,7 +738,8 @@ function renderDefaultDashboard() {
     {
       width: "475",
       height: "500",
-      title: "Participació",
+      title: "Student Participation",
+      tooltip:"Total number of interactions between each member of the course and all the resources, including seeing the course.",
       mode: WIDGET_CODE_SNIPPET,
       snippet:
         '{\
@@ -688,18 +751,18 @@ function renderDefaultDashboard() {
         let str = "<table>\
             <thead>\
                 <tr>\
-                    <th  class=\\"tdLeft\\">Estudiant</th>\
-                    <th style=\\"width:50px;\\" class=\\"tdCenter\\">%</th>\
-                    <th style=\\"width:50px;\\" class=\\"tdCenter\\">#</th>\
+                    <th  class=\\"tdLeft studentParticipation student\\">Student</th>\
+                    <th class=\\"tdCenter studentParticipation\\">%</th>\
+                    <th class=\\"tdCenter studentParticipation\\">#</th>\
                 </tr>\
             </thead>\
             <tbody style=\'max-height:"+height+"px\'>";\
         for (let i = 0; i < labels.length; i++) {\
             let percent = (values[i]*100)/interactions;\
             str += "<tr>";\
-            str += "<td class=\\"tdLeft\\">" + labels[i] + "</td>";\
-            str += "<td style=\\"width:50px;\\" class=\\"tdCenter " + ((10<percent)?"tdGreenLight":((5<percent)?"tdOrangeLight":"tdRedLight")) + "\\">" + (Math.round(percent*100)/100).toLocaleString() + "%</td>";\
-            str += "<td style=\\"width:50px;\\" class=\\"tdRight\\">" + values[i] + "</td>";\
+            str += "<td class=\\"tdLeft studentParticipation student\\">" + labels[i] + "</td>";\
+            str += "<td class=\\"tdCenter " + ((10<percent)?"tdGreenLight":((5<percent)?"tdOrangeLight":"tdRedLight")) + " studentParticipation\\">" + (Math.round(percent*100)/100).toLocaleString() + "%</td>";\
+            str += "<td class=\\"tdCenter studentParticipation\\">" + values[i] + "</td>";\
             str += "</tr>"; };\
         str += "</tbody>\
             </table>";\
@@ -712,7 +775,8 @@ function renderDefaultDashboard() {
     {
       width: "475",
       height: "500",
-      title: "Últim accés",
+      title: "Members last access",
+      tooltip:"List of each member of the course and the last time they accessed the course.",
       mode: WIDGET_CODE_SNIPPET,
       snippet:
         '{\
@@ -724,8 +788,8 @@ function renderDefaultDashboard() {
         let str = "<table>\
             <thead>\
                 <tr>\
-                    <th class=\\"tdLeft\\">Estudiant</th>\
-                    <th style=\\"width:160px;\\" class=\\"tdCenter\\">Últim accés</th>\
+                    <th class=\\"tdLeft lastAccess\\">Student</th>\
+                    <th class=\\"tdCenter lastAccess\\">Last Access</th>\
                 </tr>\
             </thead>\
             <tbody style=\'max-height:"+height+"px\'>";\
@@ -736,8 +800,8 @@ function renderDefaultDashboard() {
             let wDateDiff = new Date().diffTimestamp(values[i]);\
             let wDateStr = wDateDiff.days+" dies "+wDateDiff.hours+" hores <br />"+wDateDiff.minutes+" minuts, "+Math.floor(wDateDiff.seconds)+" segons";\
             str += "<tr>";\
-            str += "<td class=\\"tdLeft\\">" + labels[i] + "</td>";\
-            str += "<td style=\\"width:160px;\\" class=\\"tdCenter " + ((1>wDateDiff.days)?"tdGreenLight":((3>wDateDiff.days)?"tdOrangeLight":"tdRedLight")) + "\\">" + wDate + "<br/><b>" + wDateStr + "</b></td>";\
+            str += "<td class=\\"tdLeft lastAccess\\">" + labels[i] + "</td>";\
+            str += "<td class=\\"tdCenter " + ((1>wDateDiff.days)?"tdGreenLight":((3>wDateDiff.days)?"tdOrangeLight":"tdRedLight")) + " lastAccess\\">" + wDate + "<br/><b>" + wDateStr + "</b></td>";\
             str += "</tr>"; };\
           }\
           str += "</tbody>\
@@ -750,15 +814,16 @@ function renderDefaultDashboard() {
     {
       html:
         '<div class="widget section" style="flex-basis: 100%;">\
-      <h2>3 Recursos</h2>\
-      <p>Informació relativa a interaccions amb recursos</p>\
+      <h2>3. Resources:</h2>\
+      <p>Information on interactions with resources</p>\
       </div>',
       mode: WIDGET_TEXT,
     },
     {
-      width: "475",
+      width: "500",
       height: "500",
-      title: "Última interacció recursos",
+      title: "Last interaction with a Resource",
+      tooltip: "List of each resource for the course and tand the last time any member has interacted with it.",
       mode: WIDGET_CODE_SNIPPET,
       snippet:
         '{\
@@ -770,8 +835,8 @@ function renderDefaultDashboard() {
         let str = "<table>\
             <thead>\
                 <tr>\
-                    <th class=\\"tdLeft\\">Recurs</th>\
-                    <th style=\\"width:160px;\\" class=\\"tdCenter\\">Últim accés</th>\
+                    <th class=\\"tdLeft lastInteractionResource\\">Resource</th>\
+                    <th class=\\"tdCenter lastInteractionResource\\">Last Access</th>\
                 </tr>\
             </thead>\
             <tbody style=\'max-height:"+height+"px\'>";\
@@ -782,8 +847,8 @@ function renderDefaultDashboard() {
             let wDateDiff = new Date().diffTimestamp(values[i]);\
             let wDateStr = wDateDiff.days+" dies "+wDateDiff.hours+" hores <br />"+wDateDiff.minutes+" minuts, "+Math.floor(wDateDiff.seconds)+" segons";\
             str += "<tr>";\
-            str += "<td class=\\"tdLeft\\">" + labels[i] + "</td>";\
-            str += "<td style=\\"width:160px;\\" class=\\"tdCenter " + ((1>wDateDiff.days)?"tdGreenLight":((3>wDateDiff.days)?"tdOrangeLight":"tdRedLight")) + "\\">" + wDate + "<br/><b>" + wDateStr + "</b></td>";\
+            str += "<td class=\\"tdLeft lastInteractionResource\\">" + labels[i] + "</td>";\
+            str += "<td class=\\"tdCenter " + ((1>wDateDiff.days)?"tdGreenLight":((3>wDateDiff.days)?"tdOrangeLight":"tdRedLight")) + " lastInteractionResource\\">" + wDate + "<br/><b>" + wDateStr + "</b></td>";\
             str += "</tr>"; };\
           }\
           str += "</tbody>\
@@ -794,9 +859,10 @@ function renderDefaultDashboard() {
       calcFn: { fn: "lastconnection", field: "timestamp" },
     },
     {
-      width: "475",
+      width: "500",
       height: "500",
-      title: "Interaccions amb recursos",
+      title: "Interactions with Resources",
+      tooltip:"List of each resource in a course and the number of interactions, including viewing the course",
       mode: WIDGET_CODE_SNIPPET,
       snippet:
         '{\
@@ -808,9 +874,9 @@ function renderDefaultDashboard() {
         let str = "<table>\
             <thead>\
                 <tr>\
-                    <th  class=\\"tdLeft\\">Recurs</th>\
-                    <th style=\\"width:50px;\\" class=\\"tdCenter\\">%</th>\
-                    <th style=\\"width:50px;\\" class=\\"tdCenter\\">#</th>\
+                    <th class=\\"tdLeft\\">Resource</th>\
+                    <th class=\\"tdCenter interactionResource\\">%</th>\
+                    <th class=\\"tdCenter interactionResource\\">#</th>\
                 </tr>\
             </thead>\
             <tbody style=\'max-height:"+height+"px\'>";\
@@ -818,8 +884,8 @@ function renderDefaultDashboard() {
             let percent = (values[i]*100)/interactions;\
             str += "<tr>";\
             str += "<td class=\\"tdLeft\\">" + labels[i] + "</td>";\
-            str += "<td style=\\"width:50px;\\" class=\\"tdCenter " + ((10<percent)?"tdGreenLight":((5<percent)?"tdOrangeLight":"tdRedLight")) + "\\">" + (Math.round(percent*100)/100).toLocaleString() + "%</td>";\
-            str += "<td style=\\"width:50px;\\" class=\\"tdRight\\">" + values[i] + "</td>";\
+            str += "<td class=\\"tdCenter " + ((10<percent)?"tdGreenLight":((5<percent)?"tdOrangeLight":"tdRedLight")) + " interactionResource\\">" + (Math.round(percent*100)/100).toLocaleString() + "%</td>";\
+            str += "<td class=\\"tdRight interactionResource\\">" + values[i] + "</td>";\
             str += "</tr>"; };\
         str += "</tbody>\
             </table>";\
@@ -830,9 +896,10 @@ function renderDefaultDashboard() {
       field: "context",
     },
     {
-      width: "475",
+      width: "500",
       height: "500",
-      title: "Interaccions amb components",
+      title: "Interactions with Components",
+      tooltip: "List of different resources used in the course (such as wikis or URL) and the total number of interactions.",
       mode: WIDGET_CODE_SNIPPET,
       snippet:
         '{\
@@ -844,9 +911,9 @@ function renderDefaultDashboard() {
         let str = "<table>\
             <thead>\
                 <tr>\
-                    <th  class=\\"tdLeft\\">Component</th>\
-                    <th style=\\"width:50px;\\" class=\\"tdCenter\\">%</th>\
-                    <th style=\\"width:50px;\\" class=\\"tdCenter\\">#</th>\
+                    <th class=\\"tdLeft\\">Component</th>\
+                    <th class=\\"tdCenter interactionComponents\\">%</th>\
+                    <th class=\\"tdCenter interactionComponents\\">#</th>\
                 </tr>\
             </thead>\
             <tbody style=\'max-height:"+height+"px\'>";\
@@ -854,8 +921,8 @@ function renderDefaultDashboard() {
             let percent = (values[i]*100)/interactions;\
             str += "<tr>";\
             str += "<td class=\\"tdLeft\\">" + labels[i] + "</td>";\
-            str += "<td style=\\"width:50px;\\" class=\\"tdCenter " + ((10<percent)?"tdGreenLight":((5<percent)?"tdOrangeLight":"tdRedLight")) + "\\">" + (Math.round(percent*100)/100).toLocaleString() + "%</td>";\
-            str += "<td style=\\"width:50px;\\" class=\\"tdRight\\">" + values[i] + "</td>";\
+            str += "<td class=\\"tdCenter " + ((10<percent)?"tdGreenLight":((5<percent)?"tdOrangeLight":"tdRedLight")) + " interactionComponents\\">" + (Math.round(percent*100)/100).toLocaleString() + "%</td>";\
+            str += "<td class=\\"tdRight interactionComponents\\">" + values[i] + "</td>";\
             str += "</tr>"; };\
         str += "</tbody>\
             </table>";\
@@ -866,9 +933,10 @@ function renderDefaultDashboard() {
       field: "component",
     },
     {
-      width: "475",
+      width: "500",
       height: "500",
-      title: "Interaccions amb esdeveniments",
+      title: "Interactions with Events",
+      tooltip: "List of different interactions performed on the course by its users and the count for each.",
       mode: WIDGET_CODE_SNIPPET,
       snippet:
         '{\
@@ -880,9 +948,9 @@ function renderDefaultDashboard() {
         let str = "<table>\
             <thead>\
                 <tr>\
-                    <th  class=\\"tdLeft\\">Esdeveniment</th>\
-                    <th style=\\"width:50px;\\" class=\\"tdCenter\\">%</th>\
-                    <th style=\\"width:50px;\\" class=\\"tdCenter\\">#</th>\
+                    <th class=\\"tdLeft\\">Event</th>\
+                    <th class=\\"tdCenter interactionEvents\\">%</th>\
+                    <th class=\\"tdCenter interactionEvents\\">#</th>\
                 </tr>\
             </thead>\
             <tbody style=\'max-height:"+height+"px\'>";\
@@ -890,8 +958,8 @@ function renderDefaultDashboard() {
             let percent = (values[i]*100)/interactions;\
             str += "<tr>";\
             str += "<td class=\\"tdLeft\\">" + labels[i] + "</td>";\
-            str += "<td style=\\"width:50px;\\" class=\\"tdCenter " + ((10<percent)?"tdGreenLight":((5<percent)?"tdOrangeLight":"tdRedLight")) + "\\">" + (Math.round(percent*100)/100).toLocaleString() + "%</td>";\
-            str += "<td style=\\"width:50px;\\" class=\\"tdRight\\">" + values[i] + "</td>";\
+            str += "<td class=\\"tdCenter " + ((10<percent)?"tdGreenLight":((5<percent)?"tdOrangeLight":"tdRedLight")) + " interactionEvents\\">" + (Math.round(percent*100)/100).toLocaleString() + "%</td>";\
+            str += "<td class=\\"tdRight interactionEvents\\">" + values[i] + "</td>";\
             str += "</tr>"; };\
         str += "</tbody>\
             </table>";\
@@ -902,9 +970,10 @@ function renderDefaultDashboard() {
       field: "event",
     },
     {
-      width: "475",
+      width: "500",
       height: "500",
-      title: "Interaccions amb context",
+      title: "Interactions with context",
+      tooltip:"For each element in the course that can be interacted with, it shows the total number of interactions generated from the users.",
       mode: WIDGET_CODE_SNIPPET,
       snippet:
         '{\
@@ -916,9 +985,9 @@ function renderDefaultDashboard() {
         let str = "<table>\
             <thead>\
                 <tr>\
-                    <th  class=\\"tdLeft\\">Context</th>\
-                    <th style=\\"width:50px;\\" class=\\"tdCenter\\">%</th>\
-                    <th style=\\"width:50px;\\" class=\\"tdCenter\\">#</th>\
+                    <th class=\\"tdLeft\\">Context</th>\
+                    <th class=\\"tdCenter interactionContext\\">%</th>\
+                    <th class=\\"tdCenter interactionContext\\">#</th>\
                 </tr>\
             </thead>\
             <tbody style=\'max-height:"+height+"px\'>";\
@@ -926,8 +995,8 @@ function renderDefaultDashboard() {
             let percent = (values[i]*100)/interactions;\
             str += "<tr>";\
             str += "<td class=\\"tdLeft\\">" + labels[i] + "</td>";\
-            str += "<td style=\\"width:50px;\\" class=\\"tdCenter " + ((10<percent)?"tdGreenLight":((5<percent)?"tdOrangeLight":"tdRedLight")) + "\\">" + (Math.round(percent*100)/100).toLocaleString() + "%</td>";\
-            str += "<td style=\\"width:50px;\\" class=\\"tdRight\\">" + values[i] + "</td>";\
+            str += "<td class=\\"tdCenter " + ((10<percent)?"tdGreenLight":((5<percent)?"tdOrangeLight":"tdRedLight")) + " interactionContext\\">" + (Math.round(percent*100)/100).toLocaleString() + "%</td>";\
+            str += "<td class=\\"tdRight interactionContext\\">" + values[i] + "</td>";\
             str += "</tr>"; };\
         str += "</tbody>\
             </table>";\
@@ -939,9 +1008,10 @@ function renderDefaultDashboard() {
       filter: { context: ["NOT BEGIN (Curs:)"] },
     },
     {
-      width: "475",
+      width: "500",
       height: "500",
-      title: "Interaccions amb URL",
+      title: "Interactions with URL",
+      tooltip:"For each URL in the course that can be interacted, it shows the number of interactions generated from the users.",
       mode: WIDGET_CODE_SNIPPET,
       snippet:
         '{\
@@ -953,9 +1023,9 @@ function renderDefaultDashboard() {
         let str = "<table>\
             <thead>\
                 <tr>\
-                    <th  class=\\"tdLeft\\">URL</th>\
-                    <th style=\\"width:50px;\\" class=\\"tdCenter\\">%</th>\
-                    <th style=\\"width:50px;\\" class=\\"tdCenter\\">#</th>\
+                    <th class=\\"tdLeft\\">URL</th>\
+                    <th class=\\"tdCenter interactionURL\\">%</th>\
+                    <th class=\\"tdCenter interactionURL\\">#</th>\
                 </tr>\
             </thead>\
             <tbody style=\'max-height:"+height+"px\'>";\
@@ -963,8 +1033,8 @@ function renderDefaultDashboard() {
             let percent = (values[i]*100)/interactions;\
             str += "<tr>";\
             str += "<td class=\\"tdLeft\\">" + labels[i] + "</td>";\
-            str += "<td style=\\"width:50px;\\" class=\\"tdCenter " + ((10<percent)?"tdGreenLight":((5<percent)?"tdOrangeLight":"tdRedLight")) + "\\">" + (Math.round(percent*100)/100).toLocaleString() + "%</td>";\
-            str += "<td style=\\"width:50px;\\" class=\\"tdRight\\">" + values[i] + "</td>";\
+            str += "<td class=\\"tdCenter " + ((10<percent)?"tdGreenLight":((5<percent)?"tdOrangeLight":"tdRedLight")) + " interactionURL\\">" + (Math.round(percent*100)/100).toLocaleString() + "%</td>";\
+            str += "<td class=\\"tdRight interactionURL\\">" + values[i] + "</td>";\
             str += "</tr>"; };\
         str += "</tbody>\
             </table>";\
@@ -978,7 +1048,8 @@ function renderDefaultDashboard() {
     {
       width: "475",
       height: "500",
-      title: "Interaccions amb Pàgines",
+      title: "Interactions with Pages",
+      tooltip:"For each Page resource in the course, it shows the number of interactions generated from the users.",
       mode: WIDGET_CODE_SNIPPET,
       snippet:
         '{\
@@ -990,9 +1061,9 @@ function renderDefaultDashboard() {
         let str = "<table>\
             <thead>\
                 <tr>\
-                    <th  class=\\"tdLeft\\">Pàgina</th>\
-                    <th style=\\"width:50px;\\" class=\\"tdCenter\\">%</th>\
-                    <th style=\\"width:50px;\\" class=\\"tdCenter\\">#</th>\
+                    <th class=\\"tdLeft\\">Page</th>\
+                    <th class=\\"tdCenter interactionPages\\">%</th>\
+                    <th class=\\"tdCenter interactionPages\\">#</th>\
                 </tr>\
             </thead>\
             <tbody style=\'max-height:"+height+"px\'>";\
@@ -1000,8 +1071,8 @@ function renderDefaultDashboard() {
             let percent = (values[i]*100)/interactions;\
             str += "<tr>";\
             str += "<td class=\\"tdLeft\\">" + labels[i] + "</td>";\
-            str += "<td style=\\"width:50px;\\" class=\\"tdCenter " + ((10<percent)?"tdGreenLight":((5<percent)?"tdOrangeLight":"tdRedLight")) + "\\">" + (Math.round(percent*100)/100).toLocaleString() + "%</td>";\
-            str += "<td style=\\"width:50px;\\" class=\\"tdRight\\">" + values[i] + "</td>";\
+            str += "<td class=\\"tdCenter " + ((10<percent)?"tdGreenLight":((5<percent)?"tdOrangeLight":"tdRedLight")) + " interactionPages\\">" + (Math.round(percent*100)/100).toLocaleString() + "%</td>";\
+            str += "<td class=\\"tdRight interactionPages\\">" + values[i] + "</td>";\
             str += "</tr>"; };\
         str += "</tbody>\
             </table>";\
@@ -1015,7 +1086,8 @@ function renderDefaultDashboard() {
     {
       width: "475",
       height: "500",
-      title: "Interaccions amb Eina ext LTI",
+      title: "Interactions with LTI Tool",
+      tooltip:"For each Learning Tool Interoperability resource in the course, it shows the amount of interactions have generated from the users.",
       mode: WIDGET_CODE_SNIPPET,
       snippet:
         '{\
@@ -1027,9 +1099,9 @@ function renderDefaultDashboard() {
         let str = "<table>\
             <thead>\
                 <tr>\
-                    <th  class=\\"tdLeft\\">Eina ext LTI</th>\
-                    <th style=\\"width:50px;\\" class=\\"tdCenter\\">%</th>\
-                    <th style=\\"width:50px;\\" class=\\"tdCenter\\">#</th>\
+                    <th class=\\"tdLeft\\">LTI Tool</th>\
+                    <th class=\\"tdCenter interactionLTI\\">%</th>\
+                    <th class=\\"tdCenter interactionLTI\\">#</th>\
                 </tr>\
             </thead>\
             <tbody style=\'max-height:"+height+"px\'>";\
@@ -1037,8 +1109,8 @@ function renderDefaultDashboard() {
             let percent = (values[i]*100)/interactions;\
             str += "<tr>";\
             str += "<td class=\\"tdLeft\\">" + labels[i] + "</td>";\
-            str += "<td style=\\"width:50px;\\" class=\\"tdCenter " + ((10<percent)?"tdGreenLight":((5<percent)?"tdOrangeLight":"tdRedLight")) + "\\">" + (Math.round(percent*100)/100).toLocaleString() + "%</td>";\
-            str += "<td style=\\"width:50px;\\" class=\\"tdRight\\">" + values[i] + "</td>";\
+            str += "<td class=\\"tdCenter " + ((10<percent)?"tdGreenLight":((5<percent)?"tdOrangeLight":"tdRedLight")) + " interactionLTI\\">" + (Math.round(percent*100)/100).toLocaleString() + "%</td>";\
+            str += "<td class=\\"tdRight interactionLTI\\">" + values[i] + "</td>";\
             str += "</tr>"; };\
         str += "</tbody>\
             </table>";\
@@ -1050,9 +1122,10 @@ function renderDefaultDashboard() {
       filter: { component: ["IN (Eina ext LTI)"] },
     },
     {
-      width: "1000",
+      width: "1062",
       height: "300",
       title: "Components",
+      tooltip:"Pie plot describing the amount of elements the course has.",
       srcJS: "https://cdn.jsdelivr.net/npm/chart.js@2.8.0",
       srcCSS: "",
       mode: WIDGET_CODE_SNIPPET,
@@ -1128,6 +1201,8 @@ function checkRender() {
   let notLoaded = false;
   let numWidgetsLoaded = 0;
   let dashLoaderN = document.getElementById("loading-resources-n");
+  let dashLoaderTotal = document.getElementById("loading-resources-total");
+  let renderProgressBar = document.getElementById("my-progress");
 
   dashb.widgets.forEach((widget) => {
     if (
@@ -1138,14 +1213,20 @@ function checkRender() {
       notLoaded = true;
     } else {
       numWidgetsLoaded++;
+      moveProgressBar(
+        renderProgressBar,
+        numWidgetsLoaded,
+        dashb.widgets.length
+      );
     }
   });
   dashLoaderN.innerHTML = numWidgetsLoaded;
   if (notLoaded) {
-    setTimeout(checkRender, 500);
+    setTimeout(() => {
+      checkRender();
+    }, 500);
   } else {
     let dashLoaderMsg = document.getElementById("loading-resources-msg");
-    let dashLoaderTotal = document.getElementById("loading-resources-total");
 
     dashLoaderMsg.innerHTML = "Rendering charts";
     dashLoaderTotal.innerHTML = dashb.widgets.length;
@@ -1167,6 +1248,11 @@ function render() {
   let dashLoaderN = document.getElementById("loading-resources-n");
   let dashLoaderTotal = document.getElementById("loading-resources-total");
   let dashLoader = document.getElementById("loading-resources");
+  let renderProgressBar = document.getElementById("my-progress");
+
+  if (parseInt(dashLoaderN.innerHTML) === 0) {
+    renderProgressBar.style.width = 0;
+  }
 
   dashb.widgets.forEach((widget) => {
     let renderPromise = new Promise((resolve, reject) => {
@@ -1183,6 +1269,12 @@ function render() {
         navigatorInit("Show all students", "fullName");
         navigatorInit("Show all resources", "context");
         document.getElementById("widgets").style.opacity = 1;
+      } else {
+        moveProgressBar(
+          renderProgressBar,
+          parseFloat(dashLoaderN.innerHTML),
+          parseFloat(dashLoaderTotal.innerHTML)
+        );
       }
     });
   });
@@ -1230,9 +1322,8 @@ function renderJSWidget(widget) {
     document
       .getElementById("widgets")
       .insertAdjacentHTML("beforeend", widget.evaluatedCSSHTML);
+    widget.evalAndExecuteSnippet();
   }
-
-  widget.evalAndExecuteSnippet();
 }
 
 function editJSWidget(widget) {
@@ -1242,9 +1333,8 @@ function editJSWidget(widget) {
     //replacement.innerHTML = widget.evaluatedCSSHTML;
     //document.getElementById(widget.id).parentNode.replaceChild(replacement, document.getElementById(widget.id));
     //document.getElementById(widget.id).insertAdjacentHTML('beforeend', widget.evaluatedCSSHTML);
+    widget.evalAndExecuteSnippet();
   }
-
-  widget.evalAndExecuteSnippet();
 }
 
 function renderTextWidget(widget) {

@@ -1,7 +1,11 @@
-/*
-Moodle Web Log Analytics Tool from Moodle Standard Logs
-Copyright (c) 2020 Source code, Daniel Amo
-Released under the MIT License
+/** 
+* FILE DESCRIPTION: Widget definition 
+* @package jsmla 
+* @copyright 2020 Daniel Amo * daniel.amo@salle.url.edu 
+* @copyright 2020 La Salle Campus Barcelona, Universitat Ramon Llull https://www.salleurl.edu 
+* @author Daniel Amo 
+* @author Pablo Gómez
+* @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later 
 */
 
 const WIDGET_CODE_SNIPPET      = 0;
@@ -34,6 +38,8 @@ class Widget
             
             /** @type {boolean} Every widget can be visible (by default) or hidden for internal calculus */
             visible:true,
+
+            counter:false,
 
             field:undefined,
             
@@ -242,6 +248,31 @@ class Widget
     }
 
     /**
+     * Set the widget visible value.
+     */
+    set visible(visible)
+    {
+        this._visible = visible;
+    }
+
+    /**
+     * Get the widget counter value.
+     * @return {object} The counter value.
+     */
+    get counter()
+    {
+        return this._counter;
+    }
+
+    /**
+     * Get the widget counter value.
+     */
+    set counter(counter)
+    {
+        this._counter = counter;
+    }
+
+    /**
      * Get the widget data value.
      * @param {object} The data value with labels and values properties.
      */
@@ -269,9 +300,11 @@ class Widget
             .replace(new RegExp(this._delimiter+"ID"+this._delimiter, 'g'), this._id)
             .replace(new RegExp(this._delimiter+"CALLBACK"+this._delimiter, 'g'), this._callback)
             .replace(new RegExp(this._delimiter+"TITLE"+this._delimiter, 'g'), this._title)
-            .replace(new RegExp(this._delimiter+"WIDTH"+this._delimiter, 'g'), this._width*this._size)
+            .replace(new RegExp(this._delimiter+"WIDTH"+this._delimiter, 'g'), (this._width)*this._size)
             .replace(new RegExp(this._delimiter+"HEIGHT"+this._delimiter, 'g'), this._height*this._size)
-            .replace(new RegExp(this._delimiter+"TEXT_CONTENT"+this._delimiter, 'g'), "");
+            .replace(new RegExp(this._delimiter+"TEXT_CONTENT"+this._delimiter, 'g'), "")
+            .replace(new RegExp(this._delimiter+"TOOLTIP"+this._delimiter, 'g'),this._tooltip);
+            
         return this._evaluatedHTML;
     }
 

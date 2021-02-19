@@ -607,6 +607,70 @@ function renderDefaultDashboard() {
       field: "timestamp",
     },
     {
+      width: "1012",
+      height: "300",
+      title: "Interactions Across Week",
+      tooltip:"A plot which purpose is to show the last connection from the course's members. If you hover over the plot, it shows who was connected the last day.",
+      srcJS: "https://canvasjs.com/assets/script/canvasjs.min.js",
+      srcCSS: "",
+      mode: WIDGET_CODE_SNIPPET,
+      snippet:
+        '\
+      let labels = %LABELS%;\
+      let values = %VALUES%;\
+      let lvGroup = {};\
+      let lvGroupStudent = {};\
+      let dataPoints = new Array();\
+      let maxDays = 0;\
+      for (let i = 0; i < labels.length; i++){\
+        let diff = new Date().diffTimestamp(values[i]);\
+        lvGroup[diff.days] = ((undefined!==lvGroup[diff.days])?lvGroup[diff.days]:0) + 1;\
+        if (undefined===lvGroupStudent[diff.days])\
+        {\
+          lvGroupStudent[diff.days] = new Array();\
+        }\
+        lvGroupStudent[diff.days][lvGroupStudent[diff.days].length] = labels[i];\
+        maxDays = (diff.days > maxDays)?diff.days:maxDays;\
+      };\
+      for (let prop in lvGroup){\
+        dataPoints.push({x:prop,y:lvGroup[prop]});\
+      };\
+      document.getElementById("content_%ID%").style.height = (%HEIGHT%-70)+"px";\
+      var chart = new CanvasJS.Chart("content_%ID%", {\
+        height:%HEIGHT%-70\
+        ,animationEnabled: true,\
+        title:{\
+          text: ""\
+        },\
+        toolTip: {\
+          contentFormatter: function ( e ) {\
+                      return "Fa " +  e.entries[0].dataPoint.x + " dies accediren " + e.entries[0].dataPoint.y + " estudiants<br/>" + lvGroupStudent[e.entries[0].dataPoint.x].join("<br/>");  \
+          },\
+          shared: true\
+        },\
+        legend: {\
+          cursor: "pointer",\
+          verticalAlign: "top",\
+          itemWidth:150\
+        },\
+        axisX:{\
+          interval: 5,\
+          maximum: maxDays+1,\
+          includeZero: true\
+        },\
+        data: [\
+          {\
+            name: "Interactions",\
+            showInLegend: true,\
+            dataPoints: dataPoints\
+          },\
+        ]\
+      });\
+      chart.render();',
+      field: "timestamp",
+      calcFn: { fn: "lastconnection", field: "timestamp" },
+    },
+    {
       html:
         '<div class="widget section" style="flex-basis: 100%;">\
       <h2>2. Students:</h2>\
@@ -775,6 +839,25 @@ function renderDefaultDashboard() {
       field: "fullName",
     },
     {
+      width: "1062",
+      height: "300",
+      title: "Student Participation",
+      tooltip:"Pie plot describing the amount of elements the course has.",
+      srcJS: "https://cdn.jsdelivr.net/npm/chart.js@2.8.0",
+      srcCSS: "",
+      mode: WIDGET_CODE_SNIPPET,
+      snippet:
+        "var canvas = document.createElement('canvas');\
+            canvas.id = 'canvas_%ID%';\
+            canvas.width = '%WIDTH%';\
+            canvas.style.width = '%WIDTH%';canvas.height = '%HEIGHT%'-70;canvas.style.height = '%HEIGHT%'-70;document.getElementById('content_%ID%').appendChild(canvas);new Chart(document.getElementById('canvas_%ID%').getContext('2d'), {type: 'pie',options:{tooltips: {bodyFontColor:'#FFFFFF',bodyFontSize:14,bodyFontStyle:'bold',caretSize:0,xPadding:0,yPadding:0},responsive: false,maintainAspectRatio:false,legend:{position:'left'}},data: {labels: %LABELS%,datasets: [{data: %VALUES%,backgroundColor:[" + 
+            "'rgb(255, 99, 132)','rgb(54, 162, 235)','rgb(255, 205, 86)','rgb(255, 0, 0)','rgb(0, 255, 0)','rgb(0, 0, 255)','rgb(239, 127, 26)','rgb(155, 0, 255)','rgb(255, 0, 225)','rgb(0, 114, 46)','rgb(61, 32, 104)','rgb(128, 64, 0)','rgb(180, 34, 50)','rgb(210,179,63)','rgb(159,190,87)','rgb(217, 136, 128)','rgb(171, 235, 198)','rgb(52, 73, 94)','rgb(246, 221, 204)','rgb(169, 204, 227)','rgb(163, 228, 215)','rgb(236, 112, 99)','rgb(11, 83, 69 )', 'rgb(194, 255, 99 )']}]}});",
+      sortBy: "value",
+      order: "DESC",
+      field: "fullName",
+      calcFn: { fn: "othersPercentage", field: "fullName" },
+    },
+    {
       width: "475",
       height: "500",
       title: "Members last access",
@@ -935,6 +1018,21 @@ function renderDefaultDashboard() {
       field: "component",
     },
     {
+      width: "1062",
+      height: "300",
+      title: "Interactions with Components",
+      tooltip:"Pie plot describing the amount of elements the course has.",
+      srcJS: "https://cdn.jsdelivr.net/npm/chart.js@2.8.0",
+      srcCSS: "",
+      mode: WIDGET_CODE_SNIPPET,
+      snippet:
+        "var canvas = document.createElement('canvas');\
+            canvas.id = 'canvas_%ID%';\
+            canvas.width = '%WIDTH%';\
+            canvas.style.width = '%WIDTH%';canvas.height = '%HEIGHT%'-70;canvas.style.height = '%HEIGHT%'-70;document.getElementById('content_%ID%').appendChild(canvas);new Chart(document.getElementById('canvas_%ID%').getContext('2d'), {type: 'pie',options:{tooltips: {bodyFontColor:'#FFFFFF',bodyFontSize:14,bodyFontStyle:'bold',caretSize:0,xPadding:0,yPadding:0},responsive: false,maintainAspectRatio:false,legend:{position:'left'}},data: {labels: %LABELS%,datasets: [{data: %VALUES%,backgroundColor:['rgb(255, 99, 132)','rgb(54, 162, 235)','rgb(255, 205, 86)','rgb(255, 0, 0)','rgb(0, 255, 0)','rgb(0, 0, 255)','rgb(239, 127, 26)','rgb(155, 0, 255)','rgb(255, 0, 225)','rgb(0, 114, 46)','rgb(61, 32, 104)','rgb(128, 64, 0)','rgb(180, 34, 50)']}]}});",
+      field: "component",
+    },
+    {
       width: "500",
       height: "500",
       title: "Interactions with Events",
@@ -970,6 +1068,22 @@ function renderDefaultDashboard() {
       sortBy: "key",
       order: "ASC",
       field: "event",
+    },
+    {
+      width: "1062",
+      height: "300",
+      title: "Interactions with Events",
+      tooltip:"Pie plot describing the amount of elements the course has.",
+      srcJS: "https://cdn.jsdelivr.net/npm/chart.js@2.8.0",
+      srcCSS: "",
+      mode: WIDGET_CODE_SNIPPET,
+      snippet:
+        "var canvas = document.createElement('canvas');\
+            canvas.id = 'canvas_%ID%';\
+            canvas.width = '%WIDTH%';\
+            canvas.style.width = '%WIDTH%';canvas.height = '%HEIGHT%'-70;canvas.style.height = '%HEIGHT%'-70;document.getElementById('content_%ID%').appendChild(canvas);new Chart(document.getElementById('canvas_%ID%').getContext('2d'), {type: 'pie',options:{tooltips: {bodyFontColor:'#FFFFFF',bodyFontSize:14,bodyFontStyle:'bold',caretSize:0,xPadding:0,yPadding:0},responsive: false,maintainAspectRatio:false,legend:{position:'left'}},data: {labels: %LABELS%,datasets: [{data: %VALUES%,backgroundColor:['rgb(255, 99, 132)','rgb(54, 162, 235)','rgb(255, 205, 86)','rgb(255, 0, 0)','rgb(0, 255, 0)','rgb(0, 0, 255)','rgb(239, 127, 26)','rgb(155, 0, 255)','rgb(255, 0, 225)','rgb(0, 114, 46)','rgb(61, 32, 104)','rgb(128, 64, 0)','rgb(180, 34, 50)']}]}});",
+      field: "event",
+      calcFn: { fn: "othersPercentage", field: "event" },
     },
     {
       width: "500",
@@ -1010,6 +1124,22 @@ function renderDefaultDashboard() {
       filter: { context: ["NOT BEGIN (Curs:)"] },
     },
     {
+      width: "1062",
+      height: "300",
+      title: "Interactions with context",
+      tooltip:"Pie plot describing the amount of elements the course has.",
+      srcJS: "https://cdn.jsdelivr.net/npm/chart.js@2.8.0",
+      srcCSS: "",
+      mode: WIDGET_CODE_SNIPPET,
+      snippet:
+        "var canvas = document.createElement('canvas');\
+            canvas.id = 'canvas_%ID%';\
+            canvas.width = '%WIDTH%';\
+            canvas.style.width = '%WIDTH%';canvas.height = '%HEIGHT%'-70;canvas.style.height = '%HEIGHT%'-70;document.getElementById('content_%ID%').appendChild(canvas);new Chart(document.getElementById('canvas_%ID%').getContext('2d'), {type: 'pie',options:{tooltips: {bodyFontColor:'#FFFFFF',bodyFontSize:14,bodyFontStyle:'bold',caretSize:0,xPadding:0,yPadding:0},responsive: false,maintainAspectRatio:false,legend:{position:'left'}},data: {labels: %LABELS%,datasets: [{data: %VALUES%,backgroundColor:['rgb(255, 99, 132)','rgb(54, 162, 235)','rgb(255, 205, 86)','rgb(255, 0, 0)','rgb(0, 255, 0)','rgb(0, 0, 255)','rgb(239, 127, 26)','rgb(155, 0, 255)','rgb(255, 0, 225)','rgb(0, 114, 46)','rgb(61, 32, 104)','rgb(128, 64, 0)','rgb(180, 34, 50)']}]}});",
+      field: "context",
+      calcFn: { fn: "othersPercentage", field: "context" },
+    },
+    {
       width: "500",
       height: "500",
       title: "Interactions with URL",
@@ -1044,6 +1174,22 @@ function renderDefaultDashboard() {
       }',
       sortBy: "key",
       order: "ASC",
+      field: "context",
+      filter: { component: ["IN (URL)"] },
+    },
+    {
+      width: "1062",
+      height: "300",
+      title: "Interactions with URL",
+      tooltip:"Pie plot describing the amount of elements the course has.",
+      srcJS: "https://cdn.jsdelivr.net/npm/chart.js@2.8.0",
+      srcCSS: "",
+      mode: WIDGET_CODE_SNIPPET,
+      snippet:
+        "var canvas = document.createElement('canvas');\
+            canvas.id = 'canvas_%ID%';\
+            canvas.width = '%WIDTH%';\
+            canvas.style.width = '%WIDTH%';canvas.height = '%HEIGHT%'-70;canvas.style.height = '%HEIGHT%'-70;document.getElementById('content_%ID%').appendChild(canvas);new Chart(document.getElementById('canvas_%ID%').getContext('2d'), {type: 'pie',options:{tooltips: {bodyFontColor:'#FFFFFF',bodyFontSize:14,bodyFontStyle:'bold',caretSize:0,xPadding:0,yPadding:0},responsive: false,maintainAspectRatio:false,legend:{position:'left'}},data: {labels: %LABELS%,datasets: [{data: %VALUES%,backgroundColor:['rgb(255, 99, 132)','rgb(54, 162, 235)','rgb(255, 205, 86)','rgb(255, 0, 0)','rgb(0, 255, 0)','rgb(0, 0, 255)','rgb(239, 127, 26)','rgb(155, 0, 255)','rgb(255, 0, 225)','rgb(0, 114, 46)','rgb(61, 32, 104)','rgb(128, 64, 0)','rgb(180, 34, 50)']}]}});",
       field: "context",
       filter: { component: ["IN (URL)"] },
     },
@@ -1122,21 +1268,6 @@ function renderDefaultDashboard() {
       order: "ASC",
       field: "context",
       filter: { component: ["IN (Eina ext LTI)"] },
-    },
-    {
-      width: "1062",
-      height: "300",
-      title: "Components",
-      tooltip:"Pie plot describing the amount of elements the course has.",
-      srcJS: "https://cdn.jsdelivr.net/npm/chart.js@2.8.0",
-      srcCSS: "",
-      mode: WIDGET_CODE_SNIPPET,
-      snippet:
-        "var canvas = document.createElement('canvas');\
-            canvas.id = 'canvas_%ID%';\
-            canvas.width = '%WIDTH%';\
-            canvas.style.width = '%WIDTH%';canvas.height = '%HEIGHT%'-70;canvas.style.height = '%HEIGHT%'-70;document.getElementById('content_%ID%').appendChild(canvas);new Chart(document.getElementById('canvas_%ID%').getContext('2d'), {type: 'pie',options:{tooltips: {bodyFontColor:'#FFFFFF',bodyFontSize:14,bodyFontStyle:'bold',caretSize:0,xPadding:0,yPadding:0},responsive: false,maintainAspectRatio:false,legend:{position:'left'}},data: {labels: %LABELS%,datasets: [{data: %VALUES%,backgroundColor:['rgb(255, 99, 132)','rgb(54, 162, 235)','rgb(255, 205, 86)','rgb(255, 0, 0)','rgb(0, 255, 0)','rgb(0, 0, 255)']}]}});",
-      field: "component",
     },
   ];
 

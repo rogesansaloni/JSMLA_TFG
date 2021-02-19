@@ -442,6 +442,69 @@ class MoodleStandardLogsDataBase {
   }
 
   /**
+   * Get the countified labels of the dataset value.
+   * @param {string} field - The field value.
+   * @param {string} sortBy - The field to sortBy value.
+   * @param {string} order - The order value.
+   * @param {string} limit - The limit value.
+   * @return {array} The countified labels value.
+   */
+  labelsOthersPercentage(field, sortBy = "value", order = "DESC", limit = undefined) {
+    var labels = [];
+    let newLabels = new Array();
+
+    let sumValues = 0;
+    var i = 0;
+    // count duplicates
+
+    this._logs.forEach(function (obj) {
+      var j =0;
+      var sigue = true;
+      labels[obj[field]] = (labels[obj[field]] || 0) + 1;
+      sumValues += 1;
+    });
+
+    // new dataset is {key:'', value:0}
+    for (var prop in labels) {
+      newLabels.push({ key: prop, value: labels[prop] });
+    }
+
+    function compareValues(a, b) {
+      if (a.value > b.value){
+        return -1;
+      }
+      if (a.value < b.value){
+        return 1;
+      }
+      return 0;
+    }
+    
+    newLabels.sort(compareValues);
+    var sumNotOthers = 0;
+    var sigue = true;
+    var limPercentage = 0.85;
+    var index = 0;
+    for(var j = 0; (j < newLabels.length) && sigue; j++){
+      if((sumNotOthers + newLabels[j]["value"])/sumValues > limPercentage){
+        sigue = false;
+        index = j;
+      } else{
+        sumNotOthers += newLabels[j]["value"];
+      }
+    }
+    newLabels.splice(index+1, newLabels.length - index - 1);
+    newLabels[index]["key"]= "Others";
+    newLabels[index]["value"]= sumValues - sumNotOthers;
+    labels = newLabels;
+
+    // limit results
+    if (undefined !== limit) {
+      labels.length = limit;
+    }
+    return labels;
+  }
+
+  /**
    * Get rows by keys of the dataset value.
    * @param {string} dataset - The array value.
    * @param {string} key - The field to order by value.
@@ -495,6 +558,14 @@ class MoodleStandardLogsDataBase {
           labels = this.labelsLastInteraction(
             field,
             calcFn.field,
+            sortBy,
+            order,
+            limit
+          );
+          break;
+        case "othersPercentage":
+          labels = this.labelsOthersPercentage(
+            field,
             sortBy,
             order,
             limit

@@ -12,6 +12,7 @@
   overflow: hidden;
   margin: 10px;
   padding: 10px;
+  padding-bottom: 40px;
   background: white;
   border: 1px #d7dfe3 solid;
   border-radius: 4px;
@@ -44,6 +45,42 @@
 .widget table > thead {
   background: gray;
   color: white;
+}
+
+.widget .btnData {
+  background:indianred;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 300;
+  margin-top: 8px;
+  outline: none;
+  padding: 5px;
+  position: relative;
+  -webkit-transition: all 0.3s;
+  transition: all 0.3s;
+  vertical-align: middle;
+}
+
+.widget .btnData:hover {
+  background-color:firebrick;
+}
+
+.widget .btnData.small {
+  color: firebrick;
+  background: white;
+  margin-top: 0px !important;
+  padding-bottom: 0px !important;
+  width: 40px;
+  height: 24px;
+}
+
+.widget .btnData:hover {
+  color: white !important;
+  background-color: firebrick;
 }
 
 .weekInteractions {

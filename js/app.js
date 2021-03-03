@@ -129,6 +129,7 @@ var dashb = new Dashboard({
             <div id="content_%ID%" class="content" style="width:100%;overflow:auto">\n\
               <div id="rows_%ID%" class="rows"></div>\n\
             </div>\n\
+            <button type="button" id="button_%ID%" class="btnData">More data</button>\
         </div>\
         <div class="tooltip_handler">\
           <p>?</p>\
@@ -1672,10 +1673,6 @@ function editWidget(id) {
       mode: "htmlmixed",
     }
   );
-
-  // Try to format
-  //var totalLines = editor.lineCount();
-  //editor.autoFormatRange({line:0, ch:0}, {line:totalLines});
 }
 
 function deleteWidget(id) {

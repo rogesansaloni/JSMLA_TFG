@@ -444,22 +444,17 @@ class MoodleStandardLogsDataBase {
   /**
    * Get the countified labels of the dataset value.
    * @param {string} field - The field value.
-   * @param {string} sortBy - The field to sortBy value.
-   * @param {string} order - The order value.
    * @param {string} limit - The limit value.
    * @return {array} The countified labels value.
    */
-  labelsOthersPercentage(field, sortBy = "value", order = "DESC", limit = undefined) {
+  labelsOthersPercentage(field, limit = undefined) {
     var labels = [];
     let newLabels = new Array();
 
     let sumValues = 0;
-    var i = 0;
     // count duplicates
 
     this._logs.forEach(function (obj) {
-      var j =0;
-      var sigue = true;
       labels[obj[field]] = (labels[obj[field]] || 0) + 1;
       sumValues += 1;
     });
@@ -501,6 +496,46 @@ class MoodleStandardLogsDataBase {
     if (undefined !== limit) {
       labels.length = limit;
     }
+    return labels;
+  }
+
+  /**
+   * Get the last connection of the dataset value.
+   * @param {string} field - The field value.
+   * @param {string} groupField - The group field value.
+   * @param {string} sortBy - The field to sortBy value.
+   * @param {string} order - The order value.
+   * @param {string} limit - The limit value.
+   * @return {array} The countified labels value.
+   */
+  labelsInteractionsWeek(
+    field,
+    groupField = "fullDate",
+    sortBy = "value",
+    order = "DESC",
+    limit = undefined
+  ) {
+    let labels = {};
+    let newLabels = new Array();
+
+    // set last interaction
+    this._logs.forEach(function (obj) {
+      if (
+        labels[obj[field]] < obj[groupField] ||
+        undefined === labels[obj[field]]
+      ) {
+        labels[obj[field]] = obj[groupField];
+      }
+    });
+
+    // new dataset is {key:'', value:0}
+    for (var prop in labels) {
+      newLabels.push({ key: prop, value: labels[prop] });
+    }
+
+    // sort
+    labels = this.sort(newLabels, sortBy, order);
+
     return labels;
   }
 
@@ -563,13 +598,20 @@ class MoodleStandardLogsDataBase {
             limit
           );
           break;
-        case "othersPercentage":
+        case "otherspercentage":
           labels = this.labelsOthersPercentage(
             field,
-            sortBy,
-            order,
             limit
           );
+          break;
+        case "interactionsweek":
+        labels = this.labelsInteractionsWeek(
+          field,
+          calcFn.field,
+          sortBy,
+          order,
+          limit
+        );
           break;
       }
 
